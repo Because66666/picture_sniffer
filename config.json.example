@@ -1,0 +1,8 @@
+{
+  "natcat_base_url": "http://localhost:6111",
+  "natcat_token": "your-natcat-token",
+  "openai_token": "your-api-key",
+  "openai_base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+  "db_path": "picture_sniffer.db",
+  "pictures_dir": "pictures"
+}
