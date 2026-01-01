@@ -3,3 +3,5 @@ config.json
 /pictures
 *.db
 /__pycache__
+*.log
+*.pyc

@@ -1,14 +1,36 @@
 import requests
 import json
 from typing import Dict, Any, Optional
+from .logger_config import setup_logger
 
 
 class ImageAnalyzer:
     def __init__(self, api_key: str, api_url: str = "https://open.bigmodel.cn/api/paas/v4/chat/completions"):
+        """
+        初始化ImageAnalyzer实例
+        
+        Args:
+            api_key: OpenAI API密钥
+            api_url: API端点URL，默认为智谱AI的API地址
+        """
+        self.logger = setup_logger("image_analyzer")
         self.api_key = api_key
         self.api_url = api_url
 
-    def analyze_image(self, image_url: str) -> Optional[Dict[str, Any]]:
+    def analyze_image(self, image_url: str) -> Optional[Dict[str, Any]]|int:
+        """
+        分析图片内容，判断是否为Minecraft相关图片
+        
+        Args:
+            image_url: 图片URL地址
+        
+        Returns:
+            Optional[Dict[str, Any]]: 分析结果字典，包含：
+                - is_mc_pic: 是否为Minecraft图片（布尔值）
+                - category: 图片分类（字符串）
+                - description: 图片描述（字符串）
+            如果分析失败则返回None
+        """
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
@@ -80,7 +102,7 @@ class ImageAnalyzer:
 ### 输出字段说明：
 - is_mc_pic：布尔值（true/false），仅判断是否为《我的世界》相关图片；
 - category：严格遵循上述47个选项，非《我的世界》图片统一填「其他」；
-- description：简洁描述图片核心内容（如“《我的世界》中由方块搭建的中式宫殿，带飞檐和庭院”“现实中的现代公寓照片，无游戏相关元素”），10-50字为宜。
+- description：简洁描述图片核心内容（如"《我的世界》中由方块搭建的中式宫殿，带飞檐和庭院""现实中的现代公寓照片，无游戏相关元素"），10-50字为宜。
 
 ### 示例（仅作参考，需按实际图片输出）：
 示例1（是MC图-古代中式风格）：
@@ -106,14 +128,20 @@ class ImageAnalyzer:
                 }
             ],
             "thinking": {
-                "type": "enabled"
+                "type": "disabled"
             }
         }
-        response = requests.post(self.api_url, headers=headers, json=payload)
-        response.raise_for_status()
-        
-        result = response.json()
+
         try:
+            response = requests.post(self.api_url, headers=headers, json=payload)
+            if response.status_code == 400:
+                # 这种情况一般是 动图，或者不合法的图片，前者大模型不支持，后者大模型会报错。而且GIF动图和普通的图片无法从消息体进行区分。
+                self.logger.error(f"图片不合法，大模型返回：\n状态码: {response.status_code}\n响应内容: {response.text}\n图片地址: {image_url}\n") 
+                # 这种情况下就不要引发错误，重试了。
+                return -1
+            response.raise_for_status()
+            
+            result = response.json()
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0]["message"]["content"]
                 
@@ -135,8 +163,5 @@ class ImageAnalyzer:
             return None
             
         except requests.exceptions.RequestException as e:
-            print(f"分析图片失败: {e}")
-            print(f"将返回的内容保存到了response.json")
-            with open("response.json", "w", encoding="utf-8") as f:
-                f.write(response.text)
+            self.logger.error(f"分析图片失败: {e}")
             return None

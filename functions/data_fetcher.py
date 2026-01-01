@@ -21,10 +21,11 @@ class DataFetcher:
         url = f"{self.base_url}/get_group_msg_history"
         payload = {
             "group_id": group_id,
-            "message_seq": message_seq,
             "count": count,
             "reverse_order": False
         }
+        if message_seq:
+            payload["message_seq"] = message_seq
         response = requests.post(url, headers={"Authorization": self.token}, json=payload)
         return response.json()
 
@@ -35,7 +36,7 @@ class DataFetcher:
         batch_size: int = 15
     ) -> List[Dict[str, Any]]:
         all_messages = []
-        current_seq = ""
+        current_seq = last_message_id
         
         while True:
             result = self.get_group_message_history(group_id, current_seq, batch_size)
@@ -87,3 +88,12 @@ class DataFetcher:
                     break
         
         return image_messages
+
+    def fetch_message_body(self, message_id: str) -> Optional[str]:
+        url = f"{self.base_url}/get_msg"
+        payload = {
+            "message_id": message_id
+        }
+        response = requests.post(url, headers={"Authorization": self.token}, json=payload)
+        data = response.json().get("data", {})
+        return data.get("message", "")
