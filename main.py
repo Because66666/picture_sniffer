@@ -23,7 +23,7 @@ class PictureSniffer:
         )
 
     def process_group(self, group_id: str):
-        print(f"\n处理群: {group_id}")
+        print(f"\n=====================\n处理群: {group_id}")
         
         if self.db_manager.group_exists(group_id):
             print(f"群 {group_id} 已存在，获取新消息...")
@@ -36,7 +36,7 @@ class PictureSniffer:
                 messages = self.data_fetcher.get_initial_messages(group_id, 100)
                 print(f"获取到 {len(messages)} 条历史消息")
         else:
-            print(f"群 {group_id} 不存在，获取历史消息...")
+            print(f"群 {group_id} 第一次初始化，获取历史消息...")
             messages = self.data_fetcher.get_initial_messages(group_id, 100)
             print(f"获取到 {len(messages)} 条历史消息")
         

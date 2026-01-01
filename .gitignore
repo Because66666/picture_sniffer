@@ -1,2 +1,5 @@
 config.json
 /test
+/pictures
+*.db
+/__pycache__
