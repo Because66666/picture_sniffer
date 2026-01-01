@@ -188,3 +188,29 @@ class DatabaseManager:
             'description': row[3],
             'create_time': row[4]
         } for row in results]
+
+    def get_random_images(self, limit: int = 1) -> List[Dict[str, Any]]:
+        """
+        随机获取指定数量的图片记录
+        
+        Args:
+            limit: 返回的图片数量，默认为1
+        
+        Returns:
+            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description和create_time
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT image_id, image_path, category, description, create_time FROM images ORDER BY RANDOM() LIMIT ?',
+            (limit,)
+        )
+        results = cursor.fetchall()
+        conn.close()
+        return [{
+            'image_id': row[0],
+            'image_path': row[1],
+            'category': row[2],
+            'description': row[3],
+            'create_time': row[4]
+        } for row in results]
