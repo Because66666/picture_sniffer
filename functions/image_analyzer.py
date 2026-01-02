@@ -31,9 +31,54 @@ class ImageAnalyzer:
                 - description: 图片描述（字符串）
             如果分析失败则返回None
         """
+        return self._analyze_with_content(image_url, is_url=True)
+
+    def analyze_image_base64(self, base64_image: str) -> Optional[Dict[str, Any]]|int:
+        """
+        分析base64编码的图片内容，判断是否为Minecraft相关图片
+        
+        Args:
+            base64_image: 图片的base64编码字符串
+        
+        Returns:
+            Optional[Dict[str, Any]]: 分析结果字典，包含：
+                - is_mc_pic: 是否为Minecraft图片（布尔值）
+                - category: 图片分类（字符串）
+                - description: 图片描述（字符串）
+            如果分析失败则返回None
+        """
+        return self._analyze_with_content(base64_image, is_url=False)
+
+    def _analyze_with_content(self, content: str, is_url: bool = True) -> Optional[Dict[str, Any]]|int:
+        """
+        内部方法：分析图片内容，判断是否为Minecraft相关图片
+        
+        Args:
+            content: 图片URL或base64编码字符串
+            is_url: 是否为URL，True表示URL，False表示base64编码
+        
+        Returns:
+            Optional[Dict[str, Any]]: 分析结果字典，包含：
+                - is_mc_pic: 是否为Minecraft图片（布尔值）
+                - category: 图片分类（字符串）
+                - description: 图片描述（字符串）
+            如果分析失败则返回None
+        """
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
+        }
+
+        image_content = {
+            "type": "image_url",
+            "image_url": {
+                "url": content
+            }
+        } if is_url else {
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{content}"
+            }
         }
 
         payload = {
@@ -118,12 +163,7 @@ class ImageAnalyzer:
                 {
                     "role": "user",
                     "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": image_url
-                            }
-                        }
+                        image_content
                     ]
                 }
             ],
@@ -136,7 +176,7 @@ class ImageAnalyzer:
             response = requests.post(self.api_url, headers=headers, json=payload)
             if response.status_code == 400:
                 # 这种情况一般是 动图，或者不合法的图片，前者大模型不支持，后者大模型会报错。而且GIF动图和普通的图片无法从消息体进行区分。
-                self.logger.error(f"图片不合法，大模型返回：\n状态码: {response.status_code}\n响应内容: {response.text}\n图片地址: {image_url}\n") 
+                self.logger.error(f"图片不合法，大模型返回：\n状态码: {response.status_code}\n响应内容: {response.text}\n") 
                 # 这种情况下就不要引发错误，重试了。
                 return -1
             response.raise_for_status()
@@ -159,6 +199,99 @@ class ImageAnalyzer:
                     }
                 except json.JSONDecodeError:
                     return None
+            
+            return None
+            
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"分析图片失败: {e}")
+            return None
+
+    def describe_image(self, image_path: str) -> str|None:
+        """
+        分析图片并返回更加细致的描述。
+
+        Args:
+            image_path: 图片绝对路径
+        
+        Returns:
+            图片的详细描述，或者None
+        """
+        import base64
+
+        # 读取图片，转换为base64编码
+        with open(image_path, "rb") as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+        
+        headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
+
+        payload = {
+            "model": "glm-4.6v-flash",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": """
+### 一、核心身份与任务
+你是精通《我的世界》方块机制、建筑逻辑、场景创作的专业玩家+图片分析师，需对给定图片进行**一段式连贯描述**（拒绝分点、列表、序号等结构化表达），同时兼顾“整体风格+核心定位+细节亮点”，突出画面记忆点。
+
+### 二、分步执行指令（智能体内部执行逻辑，输出时需整合为一段）
+#### 1. 第一步：核心定位判断（先明确画面主体）
+- 要求：精准区分是「单个建筑」还是「整体风景」，并快速锁定核心类型（附具体分类示例）：
+  - 单个建筑：中世纪城堡、赛博朋克红石机械、生存原木小屋、糖果风别墅、末地风格堡垒等；
+  - 整体风景：樱花林村落群、沙漠绿洲全景、针叶林峡谷地貌、下界堡垒生态、雪地渔村等。
+
+#### 2. 第二步：整体风格把控（再定画面基调）
+- 要求：提炼画面核心风格，结合《我的世界》特色材质/色彩/氛围，示例参考：
+  - 风格类型：复古像素风（低饱和材质、怀旧方块拼接）、写实生存风（质朴材质、贴近现实场景）、奇幻童话风（高饱和色彩、创意材质组合）、史诗宏大风（大尺度结构、震撼场景）、赛博朋克风（霓虹红石元素、机械感材质）等；
+  - 描述要点：用1-2个关键词定调，再补充风格对应的视觉特征（如“写实生存风的质朴厚重”“奇幻童话风的色彩斑斓”）。
+
+#### 3. 第三步：细节特色深挖（按主体类型针对性展开）
+- 若为「单个建筑」，聚焦3个维度：
+  - 材质与纹理：方块拼接方式（如石砖+橡木撞色、下界石英+玻璃反光）、材质质感（如藤蔓覆盖的复古感、混凝土的光滑度）；
+  - 结构与布局：整体造型（如尖顶塔楼、弧形拱门）、功能分区设计（如隐藏式红石机房、延伸式走廊）、比例与层次感（如多层塔楼的错落分布）；
+  - 装饰与亮点：灯光搭配（南瓜灯暖光、萤石冷光）、装饰元素（自定义花纹、羊毛球点缀、红石装置外露/隐藏设计）。
+- 若为「整体风景」，聚焦3个维度：
+  - 地形与建筑融合：地形利用方式（依山建、沿河分布、峡谷嵌入）、建筑群落的布局逻辑（分散/集中、高低错落）；
+  - 环境与植被：植被选择（樱花树、仙人掌、针叶林）、环境适配性（沙漠-砂岩/仙人掌、雪地-雪块/云杉）；
+  - 氛围与光影：自然光影（日落余晖、雨夜反光）、人工光影（红石灯闪烁、萤石点缀）、氛围营造（云雾、粒子效果、色彩基调）。
+
+### 三、输出格式与示例规范
+1. 必须用**一段式文字**整合所有信息，逻辑顺序：核心定位→整体风格→细节特色→亮点总结；
+2. 示例1（单个建筑）：“这是一张写实生存风格的单个建筑图片，整体以深橡木与原石为核心材质，呈现出质朴厚重的乡村小屋质感，屋顶用浅灰色台阶方块模拟瓦片，一侧延伸出木质走廊，栏杆由栅栏方块拼接而成，下方悬挂的南瓜灯散发暖光，小屋周围散落着小麦和甜菜田，后方紧挨着缓坡林地，橡木树叶的绿色与建筑深棕色形成自然呼应，细节处的木门雕花、窗户内侧的书架摆放，以及墙角蔓延的藤蔓，都凸显出生存玩家的细腻创作巧思”；
+3. 示例2（整体风景）：“这是一幅奇幻童话风的整体风景图，以粉色樱花林为基底，樱花树用粉色羊毛与树叶方块叠加出蓬松质感，林间蜿蜒着石英小径，旁侧点缀着发光萤石灯，远处矗立着糖果色城堡，城墙由淡紫色混凝土与白色玻璃拼接，塔顶装饰彩色羊毛球，背景是云雾缭绕的雪山（雪块与下界冰方块构建），整体色彩明快柔和，建筑与自然景观高度融合，加上萤石灯的暖光与樱花的粉色碰撞，充满梦幻治愈的氛围”。
+"""
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": base64_image
+                            }
+                        }
+                    ]
+                }
+            ],
+            "thinking": {
+                "type": "disabled"
+            }
+        }
+        try:
+            response = requests.post(self.api_url, headers=headers, json=payload)
+            if response.status_code == 400:
+                # 这种情况一般是 动图，或者不合法的图片，前者大模型不支持，后者大模型会报错。而且GIF动图和普通的图片无法从消息体进行区分。
+                self.logger.error(f"图片不合法，大模型返回：\n状态码: {response.status_code}\n响应内容: {response.text}\n图片地址: {image_path}\n") 
+                # 这种情况下就不要引发错误，重试了。
+                return None
+            response.raise_for_status()
+            
+            result = response.json()
+            if "choices" in result and len(result["choices"]) > 0:
+                content = result["choices"][0]["message"]["content"]
+                return content
             
             return None
             

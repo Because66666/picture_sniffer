@@ -1,9 +1,9 @@
 import { API_BASE_URL } from '@/lib/api-config';
 import { ApiResponse, GalleryItem } from '@/types/gallery';
 
-export async function fetchRandomImages(): Promise<GalleryItem[]> {
+export async function fetchRandomImages(offset: number = 0, limit: number = 20): Promise<GalleryItem[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}api/random-image`, {
+    const response = await fetch(`${API_BASE_URL}api/random-image?offset=${offset}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -28,6 +28,37 @@ export async function fetchRandomImages(): Promise<GalleryItem[]> {
     }));
   } catch (error) {
     console.error('Error fetching images:', error);
+    throw error;
+  }
+}
+
+export async function searchImages(keyword: string, offset: number = 0, limit: number = 20): Promise<GalleryItem[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}api/search?keyword=${encodeURIComponent(keyword)}&offset=${offset}&limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result: ApiResponse = await response.json();
+
+    if (!result.success || !result.data) {
+      throw new Error('API request failed');
+    }
+
+    return result.data.map((item) => ({
+      id: item.image_id,
+      src: convertImagePath(item.image_path),
+      category: item.category,
+      description: item.description,
+    }));
+  } catch (error) {
+    console.error('Error searching images:', error);
     throw error;
   }
 }

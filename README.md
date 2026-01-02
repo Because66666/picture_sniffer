@@ -1,10 +1,10 @@
 # Picture Sniffer
 
-一个基于 natcatqq 框架的 Minecraft 图片采集与分析工具，用于自动记录、分析和保存 QQ 群中的 Minecraft 建筑图片和设计图。
+一个基于 napcatqq 框架的 Minecraft 图片采集与分析工具，用于自动记录、分析和保存 QQ 群中的 Minecraft 建筑图片和设计图。
 
 ## 功能特性
 
-- **自动采集**：通过 natcatqq 框架自动获取 QQ 群消息，提取其中的图片
+- **自动采集**：通过 napcatqq 框架自动获取 QQ 群消息，提取其中的图片
 - **智能分析**：使用智谱 AI (GLM-4.6v-Flash) 模型分析图片内容，判断是否为 Minecraft 相关图片
 - **自动分类**：支持 47 种 Minecraft 建筑风格分类，包括：
   - 中式建筑（古代、大比例、小比例、奇幻、乡野等）
@@ -14,6 +14,7 @@
   - 特殊建筑（工业、科幻、太空、载具等）
   - 其他分类（内饰、雕塑、旗帜等）
 - **智能描述**：自动生成图片的中文描述
+- **前端展示**：提供静态网页界面，展示所收集的 Minecraft 建筑图片，提供建筑灵感
 - **多线程处理**：使用线程池并发处理图片，提高效率
 - **进度显示**：实时显示处理进度
 - **完整日志**：记录详细的运行日志，便于调试和追踪
@@ -26,6 +27,7 @@
 ```
 picture_sniffer/
 ├── main.py                      # 主程序入口
+├── server.py                    # Flask 服务器（前端 API）
 ├── config.json                  # 配置文件
 ├── requirements.txt             # 依赖包列表
 ├── functions/                   # 功能模块
@@ -36,6 +38,15 @@ picture_sniffer/
 │   ├── data_storage.py         # 数据存储
 │   ├── config_loader.py        # 配置加载
 │   └── logger_config.py        # 日志配置
+├── website/                     # 前端静态网页
+│   ├── src/                    # 源代码
+│   │   ├── app/               # Next.js 应用
+│   │   ├── components/        # React 组件
+│   │   ├── lib/               # 工具库和 API 服务
+│   │   └── types/             # TypeScript 类型定义
+│   ├── dist/                  # 构建输出目录
+│   ├── public/                # 静态资源
+│   └── package.json           # 前端依赖配置
 ├── pictures/                    # 图片存储目录
 ├── logs/                        # 日志文件目录
 ├── error/                       # 错误响应保存目录
@@ -47,7 +58,7 @@ picture_sniffer/
 ### 环境要求
 
 - Python 3.8+
-- natcatqq 框架
+- napcatqq 框架
 - 智谱 AI API Key
 
 ### 安装步骤
@@ -65,14 +76,21 @@ cd picture_sniffer
 pip install -r requirements.txt
 ```
 
-3. 配置文件
+3. 安装前端依赖（可选，如需修改前端）
+
+```bash
+cd website
+npm install
+```
+
+4. 配置文件
 
 复制 `config.json.example` 为 `config.json`，并填写配置信息：
 
 ```json
 {
-  "natcat_base_url": "http://localhost:6111",
-  "natcat_token": "your_natcat_token",
+  "napcat_base_url": "http://localhost:6111",
+  "napcat_token": "your_napcat_token",
   "openai_token": "your_zhipu_ai_api_key",
   "openai_base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
   "db_path": "picture_sniffer.db",
@@ -84,8 +102,8 @@ pip install -r requirements.txt
 
 配置项说明：
 
-- `natcat_base_url`: natcatqq 框架的 API 地址
-- `natcat_token`: natcatqq 的认证令牌
+- `napcat_base_url`: napcatqq 框架的 API 地址
+- `napcat_token`: napcatqq 的认证令牌
 - `openai_token`: 智谱 AI 的 API Key
 - `openai_base_url`: 智谱 AI 的 API 地址（默认即可）
 - `db_path`: SQLite 数据库文件路径
@@ -97,9 +115,19 @@ pip install -r requirements.txt
 
 ### 运行程序
 
+**运行主程序（采集图片）**
+
 ```bash
 python main.py
 ```
+
+**运行前端服务器**
+
+```bash
+python server.py
+```
+
+启动后，在浏览器中访问 `http://localhost:5000` 即可查看前端网页。
 
 ### 程序流程
 
@@ -135,6 +163,11 @@ python main.py
 
 - **Python 3.8+**: 主要编程语言
 - **SQLite**: 数据库存储
+- **Flask**: Web 服务器和 API
+- **Next.js**: 前端框架
+- **React**: 前端 UI 库
+- **TypeScript**: 前端类型系统
+- **Tailwind CSS**: 前端样式框架
 - **requests**: HTTP 请求
 - **智谱 AI (GLM-4.6v-Flash)**: 图片分析
 - **ThreadPoolExecutor**: 多线程处理
@@ -143,19 +176,22 @@ python main.py
 
 ## 开发计划
 
-- [ ] 开发前端静态网页，用于展示和浏览图片
+- [x] 开发前端静态网页，用于展示和浏览图片
 - [ ] 实现分类筛选功能
 - [ ] 实现关键词搜索功能
 - [x] 添加图片分类系统
 - [ ] 添加图片质量评估
+- [ ] 优化前端性能和用户体验
 
 ## 注意事项
 
-1. 请确保 natcatqq 框架正常运行
+1. 请确保 napcatqq 框架正常运行
 2. 请妥善保管 API Key，不要将其提交到版本控制系统
 3. 首次运行会获取历史消息，后续运行只获取新消息
 4. 图片分析需要网络连接，请确保网络通畅
 5. 建议定期备份数据库文件
+6. 前端服务器默认运行在 `http://localhost:5000`，可在 server.py 中修改端口配置
+7. 前端网页需要后端 API 支持，请确保 server.py 正在运行
 
 ## 许可证
 
@@ -188,6 +224,6 @@ limitations under the License.
 
 ## 致谢
 
-- [natcatqq](https://github.com/NapNeko/NapCatQQ) - QQ 机器人框架
+- [napcatqq](https://github.com/NapNeko/NapCatQQ) - QQ 机器人框架
 - [智谱 AI](https://bigmodel.cn/) - 提供图片分析 API
 - 所有贡献者

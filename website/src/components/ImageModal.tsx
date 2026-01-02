@@ -62,7 +62,7 @@ export const ImageModal = ({ selectedItem, onClose }: ImageModalProps) => {
 
               <div className="mt-6 space-y-3">
                 <Button variant="primary" icon={<Sparkles size={18} />} className="w-full">
-                  继续创作
+                  细化描述
                 </Button>
                 <Button variant="secondary" icon={<Download size={18} />} className="w-full" onClick={handleDownload}>
                   下载图片

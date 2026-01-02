@@ -1,6 +1,9 @@
 import time
 import queue
 import threading
+import argparse
+import os
+import base64
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from functions import DatabaseManager, DataFetcher, ImageAnalyzer, DataStorage, load_config, setup_logger
@@ -22,8 +25,8 @@ class PictureSniffer:
         
         self.db_manager = DatabaseManager(config.get("db_path", "picture_sniffer.db"))
         self.data_fetcher = DataFetcher(
-            config["natcat_base_url"],
-            config["natcat_token"]
+            config["napcat_base_url"],
+            config["napcat_token"]
         )
         self.image_analyzer = ImageAnalyzer(
             config["openai_token"],
@@ -124,7 +127,7 @@ class PictureSniffer:
         """
         使用线程池处理图片队列中的所有图片
         
-        使用5个线程并发处理图片队列，支持动态调整进度条总数
+        使用3个线程并发处理图片队列，支持动态调整进度条总数
         """
         self.logger.info(f"启动 {self.thread_pool_size} 个线程处理图片队列")
         
@@ -160,6 +163,142 @@ class PictureSniffer:
                         # 此时进度条应当保持不变
                         pbar.update(0)
 
+    def scan_local_folder(self, folder_path: str) -> list:
+        """
+        扫描本地文件夹，获取所有图片的绝对路径
+        
+        Args:
+            folder_path: 文件夹路径
+        
+        Returns:
+            list: 图片文件路径列表
+        """
+        image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'}
+        image_paths = []
+        
+        for root, dirs, files in os.walk(folder_path):
+            for file in files:
+                if os.path.splitext(file)[1].lower() in image_extensions:
+                    image_paths.append(os.path.join(root, file))
+        
+        self.logger.info(f"在文件夹 {folder_path} 中找到 {len(image_paths)} 张图片")
+        return image_paths
+
+    def move_image_to_pictures(self, source_path: str, image_id: str) -> str:
+        """
+        将图片移动到pictures目录
+        
+        Args:
+            source_path: 图片源路径
+            image_id: 图片ID
+        
+        Returns:
+            str: 相对路径，移动失败返回空字符串
+        """
+        try:
+            filename = f"{image_id}{os.path.splitext(source_path)[1]}"
+            dest_path = os.path.join(self.data_storage.pictures_dir, filename)
+            
+            if os.path.exists(dest_path):
+                self.logger.warning(f"目标文件已存在，跳过: {dest_path}")
+                return ""
+            
+            os.makedirs(self.data_storage.pictures_dir, exist_ok=True)
+            os.rename(source_path, dest_path)
+            
+            relative_path = os.path.join("pictures", filename)
+            self.logger.debug(f"图片已移动: {source_path} -> {dest_path}")
+            return relative_path
+        except Exception as e:
+            self.logger.error(f"移动图片失败: {source_path}, 错误: {e}")
+            return ""
+
+    def process_local_image(self, image_path: str, image_id: str) -> bool:
+        """
+        处理单个本地图片，包括分析和保存
+        
+        Args:
+            image_path: 图片绝对路径
+            image_id: 自定义图片ID（如A0001）
+        
+        Returns:
+            bool: 处理成功返回True，失败返回False
+        """
+        self.logger.debug(f"处理本地图片: {image_path}, ID: {image_id}")
+        
+        if self.db_manager.image_exists(image_id):
+            self.logger.debug(f"图片ID已存在，跳过: {image_id}")
+            return True
+        
+        try:
+            with open(image_path, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+        except Exception as e:
+            self.logger.error(f"读取图片失败: {image_path}, 错误: {e}")
+            return False
+        
+        analysis_result = self.image_analyzer.analyze_image_base64(base64_image)
+        
+        if isinstance(analysis_result, dict):
+            is_mc_pic = analysis_result.get("is_mc_pic", False)
+            self.logger.debug(f"是否为MC图片: {is_mc_pic}")
+            
+            if is_mc_pic:
+                relative_path = self.move_image_to_pictures(image_path, image_id)
+                if not relative_path:
+                    self.logger.warning(f"图片移动失败")
+                    return False
+                
+                category = analysis_result.get("category", "")
+                description = analysis_result.get("description", "")
+                
+                self.data_storage.save_image_info(image_id, relative_path, category, description)
+                self.logger.debug(f"图片已保存: {image_id}")
+                return True
+            else:
+                self.logger.debug(f"不是MC图片，忽略")
+                return False
+        elif analysis_result == -1:
+            self.logger.debug(f"图片不合法，忽略")
+            return False
+        else:
+            self.logger.warning(f"图片分析失败")
+            return False
+
+    def process_local_images(self, folder_path: str):
+        """
+        使用线程池处理本地文件夹中的所有图片
+        
+        Args:
+            folder_path: 本地文件夹路径
+        """
+        self.logger.info(f"开始处理本地文件夹: {folder_path}")
+        
+        image_paths = self.scan_local_folder(folder_path)
+        if not image_paths:
+            self.logger.info("文件夹中没有图片")
+            return
+        
+        total_images = len(image_paths)
+        self.logger.info(f"找到 {total_images} 张图片，开始处理...")
+        
+        with ThreadPoolExecutor(max_workers=self.thread_pool_size) as executor:
+            futures = []
+            
+            with tqdm(total=total_images, desc="处理本地图片", unit="张") as pbar:
+                for idx, image_path in enumerate(image_paths, start=1):
+                    image_id = f"A{idx:04d}"
+                    future = executor.submit(self.process_local_image, image_path, image_id)
+                    futures.append(future)
+                
+                for future in as_completed(futures):
+                    try:
+                        result = future.result()
+                        pbar.update(1)
+                    except Exception as e:
+                        self.logger.error(f"处理图片时发生异常: {e}")
+                        pbar.update(1)
+
     def run(self):
         """
         运行图片嗅探器主程序
@@ -194,6 +333,14 @@ class PictureSniffer:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Picture Sniffer - Minecraft图片嗅探器")
+    parser.add_argument("--folder", type=str, help="本地文件夹路径，用于处理本地图片")
+    args = parser.parse_args()
+    
     config = load_config("config.json")
     sniffer = PictureSniffer(config)
-    sniffer.run()
+    
+    if args.folder:
+        sniffer.process_local_images(args.folder)
+    else:
+        sniffer.run()

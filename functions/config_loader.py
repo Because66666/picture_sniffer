@@ -23,8 +23,8 @@ def load_config(config_path: str = "config.json") -> dict:
         config = json.load(f)
     
     required_keys = [
-        "natcat_base_url",
-        "natcat_token",
+        "napcat_base_url",
+        "napcat_token",
         "openai_token"
     ]
     

@@ -138,6 +138,48 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
+    def update_image_description(self, image_id: str, description: str):
+        """
+        更新图片的描述信息
+        
+        Args:
+            image_id: 图片ID（消息ID）
+            description: 新的图片描述
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE images SET description = ? WHERE image_id = ?',
+            (description, image_id)
+        )
+        conn.commit()
+        conn.close()
+
+    def get_image_by_id(self, image_id: str) -> Optional[Dict[str, Any]]:
+        """
+        根据图片ID获取图片记录
+        
+        Args:
+            image_id: 图片ID（消息ID）
+        
+        Returns:
+            Optional[Dict[str, Any]]: 图片记录字典，包含image_id、image_path、category、description和create_time，如果不存在则返回None
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT image_id, image_path, category, description, create_time FROM images WHERE image_id = ?', (image_id,))
+        result = cursor.fetchone()
+        conn.close()
+        if result:
+            return {
+                'image_id': result[0],
+                'image_path': result[1],
+                'category': result[2],
+                'description': result[3],
+                'create_time': result[4]
+            }
+        return None
+
     def image_exists(self, image_id: str) -> bool:
         """
         检查图片是否存在于数据库中
@@ -204,6 +246,34 @@ class DatabaseManager:
         cursor.execute(
             'SELECT image_id, image_path, category, description, create_time FROM images ORDER BY RANDOM() LIMIT ?',
             (limit,)
+        )
+        results = cursor.fetchall()
+        conn.close()
+        return [{
+            'image_id': row[0],
+            'image_path': row[1],
+            'category': row[2],
+            'description': row[3],
+            'create_time': row[4]
+        } for row in results]
+
+    def search_images(self, keyword: str, offset: int = 0, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        根据关键词搜索图片记录
+        
+        Args:
+            keyword: 搜索关键词
+            offset: 偏移量，默认为0
+            limit: 返回的图片数量，默认为20
+        
+        Returns:
+            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description和create_time
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT image_id, image_path, category, description, create_time FROM images WHERE description LIKE ? OR category LIKE ? ORDER BY create_time DESC LIMIT ? OFFSET ?',
+            (f'%{keyword}%', f'%{keyword}%', limit, offset) 
         )
         results = cursor.fetchall()
         conn.close()
