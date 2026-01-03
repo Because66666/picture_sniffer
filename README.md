@@ -5,6 +5,7 @@
 ## 功能特性
 
 - **自动采集**：通过 napcatqq 框架自动获取 QQ 群消息，提取其中的图片
+- **实时监听**：通过 WebSocket 实时监听 QQ 群消息，即时处理新图片
 - **智能分析**：使用智谱 AI (GLM-4.6v-Flash) 模型分析图片内容，判断是否为 Minecraft 相关图片
 - **自动分类**：支持 47 种 Minecraft 建筑风格分类，包括：
   - 中式建筑（古代、大比例、小比例、奇幻、乡野等）
@@ -28,6 +29,7 @@
 picture_sniffer/
 ├── main.py                      # 主程序入口
 ├── server.py                    # Flask 服务器（前端 API）
+├── ws_server.py                 # WebSocket 服务器（实时监听）
 ├── config.json                  # 配置文件
 ├── requirements.txt             # 依赖包列表
 ├── functions/                   # 功能模块
@@ -91,6 +93,7 @@ npm install
 {
   "napcat_base_url": "http://localhost:6111",
   "napcat_token": "your_napcat_token",
+  "napcat_ws_uri": "ws://localhost:3001",
   "openai_token": "your_zhipu_ai_api_key",
   "openai_base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
   "db_path": "picture_sniffer.db",
@@ -105,6 +108,7 @@ npm install
 
 - `napcat_base_url`: napcatqq 框架的 API 地址
 - `napcat_token`: napcatqq 的认证令牌
+- `napcat_ws_uri`: napcatqq 的 WebSocket 地址（用于实时监听）
 - `openai_token`: 智谱 AI 的 API Key
 - `openai_base_url`: 智谱 AI 的 API 地址（默认即可）
 - `db_path`: SQLite 数据库文件路径
@@ -124,6 +128,19 @@ npm install
 ```bash
 python main.py
 ```
+**运行主程序（导入图片）**
+
+```bash
+python main.py --folder <folder_path>
+```
+
+**运行 WebSocket 服务器（实时监听）**
+
+```bash
+python ws_server.py
+```
+
+此程序会通过 WebSocket 实时监听 QQ 群消息，即时处理新发送的图片。
 
 **运行前端服务器**
 
@@ -135,6 +152,8 @@ python server.py
 
 ### 程序流程
 
+**主程序 (main.py)**
+
 1. 获取所有 QQ 群列表
 2. 逐个处理每个群组：
    - 获取群组消息（首次运行获取历史消息，后续运行获取新消息）
@@ -143,6 +162,15 @@ python server.py
    - 保存 Minecraft 相关图片
    - 更新群组的最新消息 ID
 3. 显示处理进度和统计信息
+
+**WebSocket 服务器 (ws_server.py)**
+
+1. 连接到 NapCat WebSocket 服务器
+2. 实时监听群消息事件
+3. 提取图片消息
+4. 使用 AI 分析图片内容
+5. 保存 Minecraft 相关图片
+6. 持续运行，即时处理新消息
 
 ### 数据库结构
 
@@ -168,6 +196,7 @@ python server.py
 - **Python 3.8+**: 主要编程语言
 - **SQLite**: 数据库存储
 - **Flask**: Web 服务器和 API
+- **WebSocket**: 实时消息监听
 - **Next.js**: 前端框架
 - **React**: 前端 UI 库
 - **TypeScript**: 前端类型系统
@@ -180,22 +209,27 @@ python server.py
 
 ## 开发计划
 
+- [x] 实现图片下载以及AI处理工作流
+- [x] 实现图片导入功能
+- [x] 实现实时分析新消息，持续运行
 - [x] 开发前端静态网页，用于展示和浏览图片
 - [x] 实现分类筛选功能
 - [x] 实现关键词搜索功能
 - [x] 添加图片分类系统
 - [ ] 添加图片质量评估
-- [ ] 优化前端性能和用户体验
+- [x] 优化前端性能和用户体验
 
 ## 注意事项
 
 1. 请确保 napcatqq 框架正常运行
 2. 请妥善保管 API Key，不要将其提交到版本控制系统
-3. 首次运行会获取历史消息，后续运行只获取新消息
-4. 图片分析需要网络连接，请确保网络通畅
-5. 建议定期备份数据库文件
-6. 前端服务器默认运行在 `http://localhost:5000`，可在 server.py 中修改端口配置
-7. 前端网页需要后端 API 支持，请确保 server.py 正在运行
+3. 首次运行主程序会获取历史消息，后续运行只获取新消息
+4. WebSocket 服务器会持续运行，实时监听新消息
+5. 图片分析需要网络连接，请确保网络通畅
+6. 建议定期备份数据库文件
+7. 前端服务器默认运行在 `http://localhost:5000`，可在 server.py 中修改端口配置
+8. 前端网页需要后端 API 支持，请确保 server.py 正在运行
+9. WebSocket 服务器需要配置 `napcat_ws_uri` 和 `napcat_token`
 
 ## 许可证
 

@@ -1,5 +1,6 @@
 {
   "napcat_base_url": "http://localhost:6111",
+  "napcat_ws_uri": "ws://localhost:6112/",
   "napcat_token": "your-napcat-token",
   "openai_token": "your-api-key",
   "openai_base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
