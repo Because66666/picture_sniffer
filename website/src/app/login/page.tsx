@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { login } from '@/lib/api-service';
 
 const LoginPage = () => {
   const router = useRouter();
@@ -19,18 +20,9 @@ const LoginPage = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-      });
-
-      const data = await response.json();
+      const data = await login(token);
 
       if (data.success) {
-        localStorage.setItem('auth_token', token);
         router.push('/');
       } else {
         setError(data.message || '登录失败，请检查token是否正确');

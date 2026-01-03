@@ -1,6 +1,34 @@
 import { API_BASE_URL } from '@/lib/api-config';
 import { ApiResponse, GalleryItem } from '@/types/gallery';
 
+export interface LoginResponse {
+  success: boolean;
+  message?: string;
+}
+
+export async function login(token: string): Promise<LoginResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}api/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    const data: LoginResponse = await response.json();
+
+    if (data.success) {
+      localStorage.setItem('auth_token', token);
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+}
+
 function getAuthHeaders(): HeadersInit {
   const token = localStorage.getItem('auth_token');
   const headers: HeadersInit = {
