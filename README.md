@@ -106,9 +106,9 @@ npm install
 
 配置项说明：
 
-- `napcat_base_url`: napcatqq 框架的 API 地址
-- `napcat_token`: napcatqq 的认证令牌
-- `napcat_ws_uri`: napcatqq 的 WebSocket 地址（用于实时监听）
+- `napcat_base_url`: napcatqq 框架的 API 地址（需要配置napcat的`HTTP服务器`）
+- `napcat_token`: napcatqq 的认证令牌（配置过程中的`Token`字段）
+- `napcat_ws_uri`: napcatqq 的 WebSocket 地址（需要配置napcat的`WebSocket服务器`）
 - `openai_token`: 智谱 AI 的 API Key
 - `openai_base_url`: 智谱 AI 的 API 地址（默认即可）
 - `db_path`: SQLite 数据库文件路径
