@@ -30,15 +30,24 @@ export default function MasonryGallery() {
   const handleImageLoaded = (id: string) => {
     loadedImagesRef.current.add(id);
     
-    // 检查是否所有初始加载的图片都已加载完成
-    if (initialLoadRef.current && loadedImagesRef.current.size === items.length) {
-      updateProgress(100);
+
+      // 在3秒内逐步增加到100
+      const startTime = Date.now();
+      const duration = 3000; // 3秒
+      const animateProgress = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / duration) * 100, 100);
+        updateProgress(progress);
+        if (progress < 100) {
+          requestAnimationFrame(animateProgress);
+        }
+      };
+      requestAnimationFrame(animateProgress);
       setTimeout(() => {
         hideLoading();
         isLoadingRef.current = false;
       }, 300);
     }
-  };
 
   const loadImages = async () => {
     if (isLoadingRef.current) return;
