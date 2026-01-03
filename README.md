@@ -96,7 +96,8 @@ npm install
   "db_path": "picture_sniffer.db",
   "pictures_dir": "pictures",
   "log_file": "logs/picture_sniffer.log",
-  "log_level": "INFO"
+  "log_level": "INFO",
+  "webui_token": "your_webui_token"
 }
 ```
 
@@ -110,6 +111,9 @@ npm install
 - `pictures_dir`: 图片存储目录
 - `log_file`: 日志文件路径
 - `log_level`: 日志级别（DEBUG、INFO、WARNING、ERROR）
+- `webui_token`: 前端网页的认证令牌（用于登录验证）
+
+
 
 ## 使用方法
 

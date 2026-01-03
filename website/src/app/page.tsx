@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { GalleryItem } from "@/types/gallery";
 import { Header } from "@/components/Header";
 import { GalleryGrid } from "@/components/GalleryGrid";
@@ -8,30 +9,103 @@ import { ImageModal } from "@/components/ImageModal";
 import { fetchRandomImages } from "@/lib/api-service";
 import { useLoading } from "@/contexts/LoadingContext";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 20;
 
 export default function MasonryGallery() {
+  const router = useRouter();
   const { showLoading, hideLoading, showLoadingWithProgress, updateProgress } = useLoading();
   const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const observerRef = useRef<HTMLDivElement | null>(null);
+  const offsetRef = useRef(0);
+  const isLoadingRef = useRef(false);
+  const hasMountedRef = useRef(false);
+
+  const loadImages = async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    
+    try {
+      showLoadingWithProgress("加载中...");
+      setError(null);
+      
+      updateProgress(20);
+      const data = await fetchRandomImages(0, PAGE_SIZE);
+      
+      updateProgress(80);
+      setItems(data);
+      offsetRef.current = PAGE_SIZE;
+      setHasMore(data.length >= PAGE_SIZE);
+      
+      updateProgress(100);
+    } catch (err) {
+      setError('加载图片失败，请稍后重试');
+      console.error('Failed to load images:', err);
+    } finally {
+      setTimeout(() => {
+        hideLoading();
+        isLoadingRef.current = false;
+      }, 300);
+    }
+  };
+
+  const loadMoreImages = async () => {
+    if (loadingMore || !hasMore || isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    
+    try {
+      // console.log('loadMoreImages called with offset:', offsetRef.current);
+      setLoadingMore(true);
+      const data = await fetchRandomImages(offsetRef.current, PAGE_SIZE);
+      // console.log('Fetched data length:', data.length);
+      
+      setItems((prev) => {
+        const existingIds = new Set(prev.map(item => item.id));
+        const newItems = data.filter(item => !existingIds.has(item.id));
+        // console.log('New items after filtering:', newItems.length);
+        return [...prev, ...newItems];
+      });
+      
+      offsetRef.current += PAGE_SIZE;
+      setHasMore(data.length >= PAGE_SIZE);
+      // console.log('Updated hasMore:', data.length >= PAGE_SIZE);
+    } catch (err) {
+      console.error('Failed to load more images:', err);
+    } finally {
+      setLoadingMore(false);
+      isLoadingRef.current = false;
+    }
+  };
 
   useEffect(() => {
+    if (hasMountedRef.current) return;
+    hasMountedRef.current = true;
+    
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    setIsAuthenticated(true);
     loadImages();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
     const observer = new IntersectionObserver(
       (entries) => {
+        // console.log('IntersectionObserver triggered:', entries[0].isIntersecting, 'hasMore:', hasMore, 'loadingMore:', loadingMore);
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          // console.log('Loading more images...');
           loadMoreImages();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.01, rootMargin: '200px' }
     );
 
     if (observerRef.current) {
@@ -43,49 +117,7 @@ export default function MasonryGallery() {
         observer.unobserve(observerRef.current);
       }
     };
-  }, [hasMore, loadingMore]);
-
-  const loadImages = async () => {
-    try {
-      showLoadingWithProgress("加载中...");
-      setError(null);
-      
-      updateProgress(20);
-      const data = await fetchRandomImages(0, PAGE_SIZE);
-      
-      updateProgress(80);
-      setItems(data);
-      setOffset(PAGE_SIZE);
-      setHasMore(data.length >= PAGE_SIZE);
-      
-      updateProgress(100);
-    } catch (err) {
-      setError('加载图片失败，请稍后重试');
-      console.error('Failed to load images:', err);
-    } finally {
-      setTimeout(() => hideLoading(), 300);
-    }
-  };
-
-  const loadMoreImages = async () => {
-    try {
-      setLoadingMore(true);
-      const data = await fetchRandomImages(offset, PAGE_SIZE);
-      
-      setItems((prev) => {
-        const existingIds = new Set(prev.map(item => item.id));
-        const newItems = data.filter(item => !existingIds.has(item.id));
-        return [...prev, ...newItems];
-      });
-      
-      setOffset((prev) => prev + PAGE_SIZE);
-      setHasMore(data.length >= PAGE_SIZE);
-    } catch (err) {
-      console.error('Failed to load more images:', err);
-    } finally {
-      setLoadingMore(false);
-    }
-  };
+  }, [isAuthenticated, hasMore, loadingMore]);
 
   if (error) {
     return (
@@ -105,6 +137,10 @@ export default function MasonryGallery() {
     );
   }
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <Header />
@@ -122,7 +158,7 @@ export default function MasonryGallery() {
           没有更多图片了
         </div>
       )}
-      <div ref={observerRef} className="h-1" />
+      <div ref={observerRef} className="h-20" />
       <ImageModal
         selectedItem={selectedItem}
         onClose={() => setSelectedItem(null)}

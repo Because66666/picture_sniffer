@@ -1,16 +1,31 @@
 import { API_BASE_URL } from '@/lib/api-config';
 import { ApiResponse, GalleryItem } from '@/types/gallery';
 
-export async function fetchRandomImages(offset: number = 0, limit: number = 20): Promise<GalleryItem[]> {
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem('auth_token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+}
+
+export async function fetchRandomImages(offset: number = 0, limit: number = 50): Promise<GalleryItem[]> {
   try {
     const response = await fetch(`${API_BASE_URL}api/random-image?offset=${offset}&limit=${limit}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -36,12 +51,14 @@ export async function searchImages(keyword: string, offset: number = 0, limit: n
   try {
     const response = await fetch(`${API_BASE_URL}api/search?keyword=${encodeURIComponent(keyword)}&offset=${offset}&limit=${limit}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 

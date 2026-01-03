@@ -35,5 +35,6 @@ def load_config(config_path: str = "config.json") -> dict:
     config.setdefault("openai_base_url", "https://open.bigmodel.cn/api/paas/v4/chat/completions")
     config.setdefault("db_path", "picture_sniffer.db")
     config.setdefault("pictures_dir", "pictures")
+    config.setdefault("your_webui_token", "your-secret-key-change-this-in-production")
     
     return config

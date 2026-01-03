@@ -5,7 +5,7 @@ import { CategoryTag } from "@/components/ui/CategoryTag";
 export const ImageCard = ({ item, onClick }: ImageCardProps) => {
   return (
     <div
-      className="group relative mb-0 break-inside-avoid overflow-hidden bg-gray-100 cursor-pointer"
+      className="group relative overflow-hidden bg-gray-100 cursor-pointer"
       onClick={() => onClick(item)}
     >
       <img

@@ -4,5 +4,8 @@
   "openai_token": "your-api-key",
   "openai_base_url": "https://open.bigmodel.cn/api/paas/v4/chat/completions",
   "db_path": "picture_sniffer.db",
-  "pictures_dir": "pictures"
+  "pictures_dir": "pictures",
+  "log_file": "logs/picture_sniffer.log",
+  "log_level": "INFO",
+  "webui_token": "your_webui_token"
 }

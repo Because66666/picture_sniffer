@@ -48,7 +48,10 @@ export const Header = () => {
             </div>
             <span className="text-xs text-gray-400">作者：Because66666</span>
           </a>
-          <h1 className="text-2xl font-bold text-gray-800 text-center">探索灵感</h1>
+          <div className="flex items-center justify-center gap-3">
+            <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
+            <h1 className="text-2xl font-bold text-gray-800">探索灵感</h1>
+          </div>
         </div>
         <p className="text-lg text-gray-600 mt-2">我的世界建筑风格展廊</p>
       </header>
