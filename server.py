@@ -89,14 +89,6 @@ def search_page():
 def serve_static(path):
     return send_from_directory(STATIC_DIR, path)
 
-@app.route('/api/images', methods=['GET'])
-@require_auth
-def get_images():
-    images = db_manager.get_all_images()
-    return jsonify({
-        'success': True,
-        'data': images
-    })
 
 @app.route('/api/random-image', methods=['GET'])
 @require_auth
@@ -179,6 +171,31 @@ def search_images():
     return jsonify({
         'success': True,
         'data': images
+    })
+
+@app.route('/api/image/<image_id>', methods=['GET'])
+@require_auth
+def get_image_by_id(image_id):
+    """
+    根据图片ID获取图片记录
+    
+    Args:
+        image_id: 图片ID（消息ID）
+    
+    Returns:
+        JSON响应，包含图片记录
+    """
+    image_record = db_manager.get_image_by_id(image_id)
+    
+    if not image_record:
+        return jsonify({
+            'success': False,
+            'message': 'Image not found'
+        }), 404
+    
+    return jsonify({
+        'success': True,
+        'data': image_record
     })
 
 @app.route('/pictures/<filename>', methods=['GET'])

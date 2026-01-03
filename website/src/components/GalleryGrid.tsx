@@ -5,9 +5,10 @@ import { useState, useEffect } from "react";
 interface GalleryGridProps {
   items: GalleryItem[];
   onItemClick: (item: GalleryItem) => void;
+  onImageLoaded?: (id: string) => void;
 }
 
-export const GalleryGrid = ({ items, onItemClick }: GalleryGridProps) => {
+export const GalleryGrid = ({ items, onItemClick, onImageLoaded }: GalleryGridProps) => {
   const [columnCount, setColumnCount] = useState(1);
 
   useEffect(() => {
@@ -37,14 +38,15 @@ export const GalleryGrid = ({ items, onItemClick }: GalleryGridProps) => {
   });
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0">
       {columns.map((columnItems, colIndex) => (
-        <div key={colIndex} className="flex flex-col gap-4">
+        <div key={colIndex} className="flex flex-col gap-0">
           {columnItems.map((item) => (
             <ImageCard
               key={item.id}
               item={item}
               onClick={onItemClick}
+              onImageLoaded={onImageLoaded}
             />
           ))}
         </div>

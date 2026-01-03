@@ -9,11 +9,13 @@ export type GalleryItem = {
 export type ImageCardProps = {
   item: GalleryItem;
   onClick: (item: GalleryItem) => void;
+  onImageLoaded?: (id: string) => void;
 };
 
 export type ImageModalProps = {
   selectedItem: GalleryItem | null;
   onClose: () => void;
+  onDescriptionUpdate?: (itemId: string, description: string) => void;
 };
 
 export type ApiImageData = {
@@ -22,6 +24,7 @@ export type ApiImageData = {
   description: string;
   image_id: string;
   image_path: string;
+  img_webp: string;
 };
 
 export type ApiResponse = {

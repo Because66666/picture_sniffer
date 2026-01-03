@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 export const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
   const router = useRouter();
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -19,9 +20,18 @@ export const Header = () => {
     }
   };
 
+  const handleExpand = () => {
+    setIsExpanded(true);
+  };
+
+  const handleClose = () => {
+    setIsExpanded(false);
+    setSearchQuery("");
+  };
+
   const handleClickOutside = (event: MouseEvent) => {
     if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-      setIsExpanded(false);
+      handleClose();
     }
   };
 
@@ -58,9 +68,8 @@ export const Header = () => {
 
       <div ref={searchRef} className="fixed right-6 top-6 z-50">
         <div
-          className={`transition-all duration-300 ease-in-out ${
-            isExpanded
-              ? "w-full max-w-2xl"
+          className={`transition-all duration-200 ease-in-out ${isExpanded
+              ? "w-[280px]"
               : "w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:shadow-xl hover:scale-105"
           }`}
         >
@@ -77,10 +86,7 @@ export const Header = () => {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <button
                 type="button"
-                onClick={() => {
-                  setIsExpanded(false);
-                  setSearchQuery("");
-                }}
+                onClick={handleClose}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X size={20} />
@@ -90,7 +96,7 @@ export const Header = () => {
             <Search
               size={24}
               className="text-gray-600"
-              onClick={() => setIsExpanded(true)}
+              onClick={handleExpand}
             />
           )}
         </div>

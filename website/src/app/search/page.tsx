@@ -155,6 +155,16 @@ function SearchContent() {
       <ImageModal
         selectedItem={selectedItem}
         onClose={() => setSelectedItem(null)}
+        onDescriptionUpdate={(itemId, description) => {
+          // 更新本地状态中的图片描述
+          setItems(prevItems => prevItems.map(item => 
+            item.id === itemId ? { ...item, description } : item
+          ));
+          // 更新当前选中项的描述
+          if (selectedItem && selectedItem.id === itemId) {
+            setSelectedItem(prev => prev ? { ...prev, description } : null);
+          }
+        }}
       />
     </div>
   );

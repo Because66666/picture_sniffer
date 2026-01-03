@@ -3,12 +3,18 @@ import { X, Sparkles, Download } from "lucide-react";
 import { ImageModalProps } from "@/types/gallery";
 import { Button } from "@/components/ui/Button";
 import { CategoryTag } from "@/components/ui/CategoryTag";
+import { describeImage } from "@/lib/api-service";
+import { useState, useEffect, useCallback } from "react";
 
-export const ImageModal = ({ selectedItem, onClose }: ImageModalProps) => {
-  if (!selectedItem) return null;
+export const ImageModal = ({ selectedItem, onClose, onDescriptionUpdate }: ImageModalProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [enhancedDescription, setEnhancedDescription] = useState<string>("");
+  const [displayedDescription, setDisplayedDescription] = useState<string>("");
+  const [showEnhanced, setShowEnhanced] = useState(false);
 
   const handleDownload = async () => {
     try {
+      if (!selectedItem) return;
       const response = await fetch(selectedItem.src);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -24,6 +30,60 @@ export const ImageModal = ({ selectedItem, onClose }: ImageModalProps) => {
     }
   };
 
+  // 当切换图片时重置所有状态
+  useEffect(() => {
+    setIsLoading(false);
+    setEnhancedDescription("");
+    setDisplayedDescription("");
+    setShowEnhanced(false);
+  }, [selectedItem?.id]);
+
+  // 逐字渲染文本的效果
+  useEffect(() => {
+    if (enhancedDescription && showEnhanced) {
+      let index = 0;
+      setDisplayedDescription("");
+      const textToDisplay = enhancedDescription;
+      
+      const interval = setInterval(() => {
+        if (index < textToDisplay.length) {
+          const char = textToDisplay[index];
+          if (char) { // 确保只添加有效的字符
+            setDisplayedDescription(prev => prev + char);
+          }
+          index++;
+        } else {
+          clearInterval(interval);
+        }
+      }, 30); // 每30ms渲染一个字符
+
+      return () => clearInterval(interval);
+    }
+  }, [enhancedDescription, showEnhanced]);
+
+  // 处理细化描述按钮点击
+  const handleEnhanceDescription = async () => {
+    if (!selectedItem || isLoading) return;
+    
+    setIsLoading(true);
+    setShowEnhanced(false);
+    
+    try {
+      const newDescription = await describeImage(selectedItem.id);
+      setEnhancedDescription(newDescription);
+      setShowEnhanced(true);
+      
+      // 通知父组件更新描述
+      if (onDescriptionUpdate) {
+        onDescriptionUpdate(selectedItem.id, newDescription);
+      }
+    } catch (error) {
+      console.error('获取细化描述失败:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       {selectedItem && (
@@ -31,6 +91,7 @@ export const ImageModal = ({ selectedItem, onClose }: ImageModalProps) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
           onClick={onClose}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 md:p-10 backdrop-blur-sm"
         >
@@ -38,6 +99,7 @@ export const ImageModal = ({ selectedItem, onClose }: ImageModalProps) => {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
             onClick={(e) => e.stopPropagation()}
             className="relative max-w-7xl max-h-[95vh] flex flex-col md:flex-row bg-zinc-900 rounded-2xl overflow-hidden shadow-2xl"
           >
@@ -55,14 +117,60 @@ export const ImageModal = ({ selectedItem, onClose }: ImageModalProps) => {
                   <CategoryTag variant="light">{selectedItem.category}</CategoryTag>
                 </div>
                 <h2 className="text-xl font-bold text-gray-800 mb-2">图片详情</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {selectedItem.description}
-                </p>
+                
+                <AnimatePresence mode="wait">
+                  {isLoading ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-center py-4"
+                    >
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                        className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full mr-2"
+                      />
+                      <span className="text-gray-600 text-sm">生成细化描述中...</span>
+                    </motion.div>
+                  ) : showEnhanced ? (
+                    <motion.div
+                      key="enhanced"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <h3 className="text-sm font-semibold text-primary mb-2">细化描述：</h3>
+                      <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">
+                        {displayedDescription}
+                      </p>
+                    </motion.div>
+                  ) : (
+                    <motion.p
+                      key="original"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="text-gray-600 text-sm leading-relaxed"
+                    >
+                      {selectedItem.description}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="mt-6 space-y-3">
-                <Button variant="primary" icon={<Sparkles size={18} />} className="w-full">
-                  细化描述
+                <Button 
+                  variant="primary" 
+                  icon={<Sparkles size={18} />} 
+                  className="w-full"
+                  onClick={handleEnhanceDescription}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "生成中..." : "细化描述"}
                 </Button>
                 <Button variant="secondary" icon={<Download size={18} />} className="w-full" onClick={handleDownload}>
                   下载图片
