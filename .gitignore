@@ -7,4 +7,4 @@ config.json
 *.pyc
 test.py
 *.bat
-/caches
+/cache

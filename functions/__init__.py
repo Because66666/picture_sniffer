@@ -4,6 +4,7 @@ from .image_analyzer import ImageAnalyzer
 from .data_storage import DataStorage
 from .config_loader import load_config
 from .logger_config import setup_logger
+from .cache import compress_to_webp
 
 __all__ = [
     'DatabaseManager',
@@ -11,5 +12,6 @@ __all__ = [
     'ImageAnalyzer',
     'DataStorage',
     'load_config',
-    'setup_logger'
-]
+    'setup_logger',
+    'compress_to_webp',
+    ]

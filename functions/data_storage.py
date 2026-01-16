@@ -33,7 +33,7 @@ class DataStorage:
 
     def download_image(self, url: str, group_id: str, message_id: str) -> str:
         """
-        下载图片到本地
+        下载图片到本地，并且保存webp格式缓存到./cache路径下。
         
         Args:
             url: 图片URL地址
@@ -51,7 +51,11 @@ class DataStorage:
             response.raise_for_status()
             with open(file_path, "wb") as f:
                 f.write(response.content)
-            
+            # 保存webp格式缓存
+            webp_file_path = os.path.join("./cache", filename.replace(".jpg", ".webp"))
+            os.makedirs(os.path.dirname(webp_file_path), exist_ok=True)
+            from .cache import compress_to_webp
+            compress_to_webp(file_path, webp_file_path, max_size_kb=50)
             return file_path
         except requests.exceptions.HTTPError as e:
             if response.status_code == 400:
