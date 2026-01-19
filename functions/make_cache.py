@@ -102,6 +102,7 @@ def generate_cache(source_dir: str, cache_dir: str):
     print(f"新增生成: {processed_count}")
     print(f"跳过已有: {skipped_count}")
     print(f"处理失败: {error_count}")
+    print("-" * 30)
 
 if __name__ == "__main__":
     # 定义路径

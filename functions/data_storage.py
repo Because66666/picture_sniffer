@@ -139,10 +139,24 @@ class DataStorage:
         if not image_path:
             return False
         
+        # 以二进制读取图片，计算MD5
+        with open(image_path, "rb") as f:
+            md5_hash = hashlib.md5()
+            for chunk in iter(lambda: f.read(4096), b""):
+                md5_hash.update(chunk)
+        md5 = md5_hash.hexdigest()
+        
+        # 检查MD5是否已存在
+        if self.db_manager.md5_exists(md5):
+            # self.logger.info(f"MD5已存在，跳过重复图片: {md5}")
+            return True
+        
         category = analysis_result.get("category", "")
         description = analysis_result.get("description", "")
         
         self.save_image_info(image_id, image_path, category, description, time_str)
+        self.db_manager.insert_image_meta(image_id, 'true', md5, time_str)
+
         return True
 
     def update_group_last_message_id(self, group_id: str, last_message_id: str):
@@ -163,4 +177,4 @@ class DataStorage:
             group_id: 群组ID
             last_message_id: 最新消息ID
         """
-        self.db_manager.insert_group(group_id, last_message_id)
+        self.db_manager.insert_group(group_id, last_message_id)        

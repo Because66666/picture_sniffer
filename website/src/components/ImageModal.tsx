@@ -3,10 +3,10 @@ import { X, Sparkles, Download } from "lucide-react";
 import { ImageModalProps } from "@/types/gallery";
 import { Button } from "@/components/ui/Button";
 import { CategoryTag } from "@/components/ui/CategoryTag";
-import { describeImage } from "@/lib/api-service";
+import { describeImage, deleteImage } from "@/lib/api-service";
 import { useState, useEffect, useCallback } from "react";
 
-export const ImageModal = ({ selectedItem, onClose, onDescriptionUpdate }: ImageModalProps) => {
+export const ImageModal = ({ selectedItem, onClose, onDescriptionUpdate, onDelete }: ImageModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [enhancedDescription, setEnhancedDescription] = useState<string>("");
   const [displayedDescription, setDisplayedDescription] = useState<string>("");
@@ -83,6 +83,25 @@ export const ImageModal = ({ selectedItem, onClose, onDescriptionUpdate }: Image
       setIsLoading(false);
     }
   };
+
+  const handleDelete = async () => {
+    if (!selectedItem || isLoading) return;
+
+    if (window.confirm("确认删除图片？")) {
+      setIsLoading(true);
+      try {
+        await deleteImage(selectedItem.id);
+        onDelete?.(selectedItem.id);
+        onClose();
+      } catch (error) {
+        console.error('删除图片失败:', error);
+        alert('删除失败');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
 
   return (
     <AnimatePresence>
@@ -172,9 +191,22 @@ export const ImageModal = ({ selectedItem, onClose, onDescriptionUpdate }: Image
                 >
                   {isLoading ? "生成中..." : "细化描述"}
                 </Button>
-                <Button variant="secondary" icon={<Download size={18} />} className="w-full" onClick={handleDownload}>
-                  下载图片
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="secondary" icon={<Download size={18} />} className="flex-1" onClick={handleDownload}>
+                    下载图片
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="w-12 px-0"
+                    onClick={handleDelete}
+                    disabled={isLoading}
+                    title="删除图片"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24">
+                      <path fill="currentColor" d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zM17 6H7v13h10zM9 17h2V8H9zm4 0h2V8h-2zM7 6v13z" />
+                    </svg>
+                  </Button>
+                </div>
               </div>
             </div>
 

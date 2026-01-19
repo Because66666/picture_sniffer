@@ -48,6 +48,15 @@ class DatabaseManager:
             )
         ''')
         
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS image_meta (
+                image_id TEXT PRIMARY KEY,
+                usage TEXT,
+                md5 TEXT,
+                create_time TEXT
+            )
+        ''')
+        
         conn.commit()
         conn.close()
 
@@ -232,6 +241,59 @@ class DatabaseManager:
             'create_time': row[4]
         } for row in results]
 
+    def insert_image_meta(self, image_id: str, usage: str, md5: str, create_time: str):
+        """
+        插入或更新图片元数据记录
+        
+        Args:
+            image_id: 图片ID
+            usage: 用途
+            md5: 图片MD5值
+            create_time: 创建时间
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'INSERT OR REPLACE INTO image_meta (image_id, usage, md5, create_time) VALUES (?, ?, ?, ?)',
+            (image_id, usage, md5, create_time)
+        )
+        conn.commit()
+        conn.close()
+
+    def update_image_usage(self, image_id: str, usage: str):
+        """
+        更新图片的用途字段
+        
+        Args:
+            image_id: 图片ID
+            usage: 新的用途
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'UPDATE image_meta SET usage = ? WHERE image_id = ?',
+            (usage, image_id)
+        )
+        conn.commit()
+        conn.close()
+
+    def md5_exists(self, md5: str) -> bool:
+        """
+        检查MD5是否存在于数据库中
+        
+        Args:
+            md5: 图片MD5值
+        
+        Returns:
+            bool: 存在返回True，否则返回False
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT 1 FROM image_meta WHERE md5 = ?', (md5,))
+        result = cursor.fetchone()
+        conn.close()
+        return result is not None
+
     def get_random_images(self, offset: int = 0, limit: int = 20) -> List[Dict[str, Any]]:
         """
         获取指定数量的图片记录（分页）
@@ -286,4 +348,78 @@ class DatabaseManager:
             'description': row[3],
             'create_time': row[4]
         } for row in results]
-       
+    
+
+    def get_image_path(self, image_id: str) -> str:
+        """
+        获取图片路径
+        
+        Args:
+            image_id: 图片ID
+        
+        Returns:
+            str: 图片路径
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT image_path FROM images WHERE image_id = ?', (image_id,))
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result else ""
+
+    def get_images_by_id(self,  offset:int ,limit:int) -> List[Dict[str, Any]]:
+        """
+        根据ID获取图片记录
+        
+        Args:
+            offset: 偏移量，默认为0
+            limit: 返回的图片数量，默认为20
+        
+        Returns:
+            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description和create_time
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            'SELECT image_id, image_path, category, description, create_time FROM images ORDER BY create_time DESC LIMIT ? OFFSET ?',
+            (limit, offset)
+        )
+        results = cursor.fetchall()
+        conn.close()
+        return [{
+            'image_id': row[0],
+            'image_path': row[1],
+            'category': row[2],
+            'description': row[3],
+            'create_time': row[4]
+        } for row in results]
+
+    def delete_image(self, image_id: str):
+        """
+        删除图片，包括从数据库中将图片的image_meta表中usage字段改为false，以及删除对应的图片记录、图片本体、图片缓存。
+        
+        Args:
+            image_id: 图片ID
+        """
+        # 更新图片元数据的usage字段为false
+        self.update_image_usage(image_id, 'false')
+                
+        # 删除图片本体
+        image_path = self.get_image_path(image_id)
+        if image_path and os.path.exists(image_path):
+            os.remove(image_path)
+        
+        # 删除图片缓存
+        if image_path:
+            # 使用 os.path.splitext 更稳健地处理文件名，确保即使原文件没有扩展名也能加上 .webp
+            filename = os.path.splitext(os.path.basename(image_path))[0] + '.webp'
+            cache_path = os.path.join('./cache', filename)
+            if cache_path and os.path.exists(cache_path):
+                os.remove(cache_path)
+        
+        # 最后删除图片记录
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM images WHERE image_id = ?', (image_id,))
+        conn.commit()
+        conn.close()

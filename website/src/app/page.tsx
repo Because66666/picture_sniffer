@@ -205,6 +205,9 @@ export default function MasonryGallery() {
             setSelectedItem(prev => prev ? { ...prev, description } : null);
           }
         }}
+        onDelete={(itemId) => {
+          setItems(prevItems => prevItems.filter(item => item.id !== itemId));
+        }}
       />
     </div>
   );

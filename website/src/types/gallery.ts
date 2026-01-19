@@ -16,6 +16,7 @@ export type ImageModalProps = {
   selectedItem: GalleryItem | null;
   onClose: () => void;
   onDescriptionUpdate?: (itemId: string, description: string) => void;
+  onDelete?: (itemId: string) => void;
 };
 
 export type ApiImageData = {

@@ -171,6 +171,65 @@ export async function getImageById(imageId: string): Promise<GalleryItem> {
   }
 }
 
+export async function deleteImage(imageId: string): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}api/delete_image/${imageId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result: { success: boolean; message: string } = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || 'Failed to delete image');
+    }
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    throw error;
+  }
+}
+
+export async function fetchImagesByTime(offset: number = 0, limit: number = 20): Promise<GalleryItem[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}api/images_by_time?offset=${offset}&limit=${limit}`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        window.location.href = '/login';
+        throw new Error('Unauthorized');
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result: ApiResponse = await response.json();
+
+    if (!result.success || !result.data) {
+      throw new Error('API request failed');
+    }
+
+    return result.data.map((item) => ({
+      id: item.image_id,
+      src: convertImagePath(item.image_path),
+      category: item.category,
+      description: item.description,
+    }));
+  } catch (error) {
+    console.error('Error fetching images by time:', error);
+    throw error;
+  }
+}
+
 function convertImagePath(imagePath: string): string {
   const isDevelopment = process.env.NODE_ENV === 'development';
 
