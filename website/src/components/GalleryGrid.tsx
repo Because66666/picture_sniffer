@@ -6,9 +6,10 @@ interface GalleryGridProps {
   items: GalleryItem[];
   onItemClick: (item: GalleryItem) => void;
   onImageLoaded?: (id: string) => void;
+  currentClass?: boolean;
 }
 
-export const GalleryGrid = ({ items, onItemClick, onImageLoaded }: GalleryGridProps) => {
+export const GalleryGrid = ({ items, onItemClick, onImageLoaded, currentClass = true }: GalleryGridProps) => {
   const [columnCount, setColumnCount] = useState(1);
 
   useEffect(() => {
@@ -33,7 +34,17 @@ export const GalleryGrid = ({ items, onItemClick, onImageLoaded }: GalleryGridPr
   }, []);
 
   const columns = Array.from({ length: columnCount }, () => [] as GalleryItem[]);
-  items.forEach((item, index) => {
+  
+  // 如果 currentClass 为 false，按时间倒序排列
+  const displayItems = [...items];
+  if (!currentClass) {
+    displayItems.sort((a, b) => {
+      if (!a.create_time || !b.create_time) return 0;
+      return new Date(b.create_time).getTime() - new Date(a.create_time).getTime();
+    });
+  }
+
+  displayItems.forEach((item, index) => {
     columns[index % columnCount].push(item);
   });
 

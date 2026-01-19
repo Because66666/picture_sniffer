@@ -6,7 +6,7 @@ import { GalleryItem } from "@/types/gallery";
 import { Header } from "@/components/Header";
 import { GalleryGrid } from "@/components/GalleryGrid";
 import { ImageModal } from "@/components/ImageModal";
-import { fetchRandomImages } from "@/lib/api-service";
+import { fetchRandomImages, fetchImagesByTime } from "@/lib/api-service";
 import { useLoading } from "@/contexts/LoadingContext";
 
 const PAGE_SIZE = 20;
@@ -26,6 +26,8 @@ export default function MasonryGallery() {
   const hasMountedRef = useRef(false);
   const loadedImagesRef = useRef<Set<string>>(new Set());
   const initialLoadRef = useRef(false);
+  // 维护一个全局变量current_class，为True的时候，使用fetchRandomImages获取数据，为False的时候，使用fetchImagesByTime获取数据
+  const [currentClass, setCurrentClass] = useState(false);
 
   const handleImageLoaded = (id: string) => {
     loadedImagesRef.current.add(id);
@@ -92,7 +94,11 @@ export default function MasonryGallery() {
     try {
       // console.log('loadMoreImages called with offset:', offsetRef.current);
       setLoadingMore(true);
-      const data = await fetchRandomImages(offsetRef.current, PAGE_SIZE);
+      // 根据 currentClass 决定使用哪个 API
+      const data = await (currentClass
+        ? fetchRandomImages(offsetRef.current, PAGE_SIZE)
+        : fetchImagesByTime(offsetRef.current, PAGE_SIZE)
+      );
       // console.log('Fetched data length:', data.length);
       
       setItems((prev) => {
@@ -180,6 +186,7 @@ export default function MasonryGallery() {
         items={items}
         onItemClick={(item) => setSelectedItem(item)}
         onImageLoaded={handleImageLoaded}
+        currentClass={currentClass}
       />
       {loadingMore && (
         <div className="flex justify-center py-8">

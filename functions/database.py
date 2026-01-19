@@ -303,7 +303,7 @@ class DatabaseManager:
             limit: 返回的图片数量，默认为20
         
         Returns:
-            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description和create_time
+            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description、img_webp和create_time
         """
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -318,7 +318,8 @@ class DatabaseManager:
             'image_path': row[1],
             'category': row[2],
             'description': row[3],
-            'create_time': row[4]
+            'create_time': row[4],
+            'img_webp': self.get_cache_path_by_raw_path(row[1]) if row[1] else ''
         } for row in results]
 
     def search_images(self, keyword: str, offset: int = 0, limit: int = 20) -> List[Dict[str, Any]]:
@@ -331,7 +332,7 @@ class DatabaseManager:
             limit: 返回的图片数量，默认为20
         
         Returns:
-            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description和create_time
+            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description、img_webp和create_time
         """
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -346,7 +347,8 @@ class DatabaseManager:
             'image_path': row[1],
             'category': row[2],
             'description': row[3],
-            'create_time': row[4]
+            'create_time': row[4],
+            'img_webp': self.get_cache_path_by_raw_path(row[1]) if row[1] else ''
         } for row in results]
     
 
@@ -376,7 +378,7 @@ class DatabaseManager:
             limit: 返回的图片数量，默认为20
         
         Returns:
-            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description和create_time
+            List[Dict[str, Any]]: 图片列表，每个图片包含image_id、image_path、category、description、img_webp和create_time
         """
         conn = self.get_connection()
         cursor = conn.cursor()
@@ -391,8 +393,23 @@ class DatabaseManager:
             'image_path': row[1],
             'category': row[2],
             'description': row[3],
-            'create_time': row[4]
+            'create_time': row[4],
+            'img_webp': self.get_cache_path_by_raw_path(row[1]) if row[1] else ''
         } for row in results]
+
+    def get_cache_path_by_raw_path(self, raw_path: str) -> str:
+        """
+        根据原始图片路径获取缓存图片路径
+        
+        Args:
+            raw_path: 原始图片路径
+        
+        Returns:
+            str: 缓存图片路径
+        """
+        # 假设缓存图片路径与原始路径相关，例如在 ./cache 目录下
+        filename = os.path.splitext(os.path.basename(raw_path))[0] + '.webp'
+        return os.path.join('./cache', filename)
 
     def delete_image(self, image_id: str):
         """
@@ -412,8 +429,7 @@ class DatabaseManager:
         # 删除图片缓存
         if image_path:
             # 使用 os.path.splitext 更稳健地处理文件名，确保即使原文件没有扩展名也能加上 .webp
-            filename = os.path.splitext(os.path.basename(image_path))[0] + '.webp'
-            cache_path = os.path.join('./cache', filename)
+            cache_path = self.get_cache_path_by_raw_path(image_path)
             if cache_path and os.path.exists(cache_path):
                 os.remove(cache_path)
         

@@ -44,13 +44,13 @@ export const Header = () => {
 
   return (
     <>
-      <header className="flex flex-col items-center mb-8 px-2">
-        <div className="relative w-full max-w-4xl">
+      <header className="flex flex-col items-center mb-8 px-2 pt-4 md:pt-0">
+        <div className="relative w-full max-w-4xl flex flex-col md:block items-center">
           <a
             href="https://github.com/Because66666/picture_sniffer"
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-start gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            className="order-2 mt-4 md:mt-0 md:order-none md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2 flex flex-col items-center md:items-start gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
           >
             <div className="flex items-center gap-2">
               <Github size={20} />
@@ -58,19 +58,19 @@ export const Header = () => {
             </div>
             <span className="text-xs text-gray-400">作者：Because66666</span>
           </a>
-          <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center justify-center gap-3 md:w-full">
             <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
             <h1 className="text-2xl font-bold text-gray-800">探索灵感</h1>
           </div>
         </div>
-        <p className="text-lg text-gray-600 mt-2">我的世界建筑风格展廊</p>
+        <p className="text-lg text-gray-600 mt-2 text-center">我的世界建筑风格展廊</p>
       </header>
 
-      <div ref={searchRef} className="fixed right-6 top-6 z-50">
+      <div ref={searchRef} className="fixed right-4 top-4 md:right-6 md:top-6 z-50">
         <div
           className={`transition-all duration-200 ease-in-out ${isExpanded
-              ? "w-[280px]"
-              : "w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:shadow-xl hover:scale-105"
+              ? "w-[calc(100vw-32px)] md:w-[280px]"
+              : "w-10 h-10 md:w-12 md:h-12 bg-white rounded-full shadow-lg flex items-center justify-center cursor-pointer hover:shadow-xl hover:scale-105"
           }`}
         >
           {isExpanded ? (

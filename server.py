@@ -262,6 +262,11 @@ def get_images_list():
 def serve_picture(filename):
     return send_from_directory(PICTURES_DIR, filename)
 
+@app.route('/cache/<filename>', methods=['GET'])
+def serve_cache_picture(filename):
+    return send_from_directory(CACHE_DIR, filename)
+
+
 @app.route("/api/download_images", methods=['GET'])
 @require_auth
 def download_images():

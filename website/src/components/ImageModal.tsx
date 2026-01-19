@@ -124,7 +124,7 @@ export const ImageModal = ({ selectedItem, onClose, onDescriptionUpdate, onDelet
           >
             <div className="flex-1 relative bg-black flex items-center justify-center">
               <img
-                src={selectedItem.src}
+                src={selectedItem.real_src}
                 alt={selectedItem.description}
                 className="max-w-full max-h-[95vh] object-contain"
               />

@@ -3,6 +3,8 @@ export type GalleryItem = {
   src: string;
   category: string;
   description: string;
+  create_time?: string;
+  real_src?: string;
   aspectRatio?: "square" | "portrait" | "landscape" | "tall";
 };
 
